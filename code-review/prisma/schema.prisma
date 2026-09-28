@@ -1,0 +1,70 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id           String          @id @default(cuid())
+  name         String
+  email        String          @unique
+  passwordHash String
+  createdAt    DateTime        @default(now())
+  submissions  Submission[]
+  reviews      Review[]
+  events       ActivityEvent[]
+}
+
+model Submission {
+  id          String          @id @default(cuid())
+  authorId    String
+  author      User            @relation(fields: [authorId], references: [id])
+  title       String
+  language    String
+  description String
+  code        String
+  createdAt   DateTime        @default(now())
+  reviews     Review[]
+  events      ActivityEvent[]
+}
+
+model Review {
+  id           String        @id @default(cuid())
+  submissionId String
+  submission   Submission    @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  reviewerId   String
+  reviewer     User          @relation(fields: [reviewerId], references: [id])
+  assignedAt   DateTime      @default(now())
+  submittedAt  DateTime?
+  verdict      String? // "APPROVE" | "REQUEST_CHANGES"
+  summary      String?
+  correctness  Int?
+  readability  Int?
+  structure    Int?
+  comments     LineComment[]
+
+  @@unique([submissionId, reviewerId])
+}
+
+model LineComment {
+  id         String   @id @default(cuid())
+  reviewId   String
+  review     Review   @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  lineNumber Int
+  body       String
+  createdAt  DateTime @default(now())
+}
+
+model ActivityEvent {
+  id           String     @id @default(cuid())
+  submissionId String
+  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  actorId      String
+  actor        User       @relation(fields: [actorId], references: [id])
+  type         String // SUBMITTED | REVIEWER_ASSIGNED | REVIEWER_REMOVED | REVIEW_SUBMITTED
+  meta         String     @default("{}")
+  createdAt    DateTime   @default(now())
+}
